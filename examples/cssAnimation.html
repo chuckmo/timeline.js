@@ -57,33 +57,11 @@ function init() {
 	anim("rectangles[3]",rectangles[3]).to({"y":350},0).to({"y":250},1.0086792452830189, Timeline.Easing.Cubic.EaseOut).to({"y":250},0.9883018867924527).to({"y":250},1.1105660377358493).to({"y":-50},0.621509433962264, Timeline.Easing.Quadratic.EaseIn);
 	anim("rectangles[3]",rectangles[3]).to({"rotation":0},0).to({"rotation":90},0.9984905660377358, Timeline.Easing.Cubic.EaseOut);
 	anim("rectangles[1]",rectangles[1]).to({"opacity":.5},0);
+	
+	anim("rectangles[1]",rectangles[1]).to({"width":1},0).to({"width":50},3, Timeline.Easing.Cubic.EaseOut);
    
 	Timeline.getGlobalInstance().loop(-1); //loop forever
 	
-	function draw() { 
-	
-		//translate obj styles to css styles....                  
-		for(var i=0; i<4; i++) {   
-			var rect = rectangles[i];                  
-			rect.element.style.background = "#FF0000";
-			rect.element.style.position = "absolute";
-			rect.element.style.left = rect.x + "px";
-			rect.element.style.top = rect.y + "px";
-			rect.element.style.width = rect.width + "px";
-			rect.element.style.height = rect.height + "px";  
-			
-			rect.element.style["-webkit-transform"] = "rotate(" + rect.rotation + "deg)"; 
-			rect.element.style["-moz-transform"] = "rotate(" + rect.rotation + "deg)"; 
-			rect.element.style["-o-transform"] = "rotate(" + rect.rotation + "deg)"; 
-			rect.element.style["transform"] = "rotate(" + rect.rotation + "deg)"; 
-			rect.element.style["MozTransform"] = "rotate(" + rect.rotation + "deg)";
-			rect.element.style.transform = "rotate(" + rect.rotation + "deg)"; 
-			
-		}
-		requestAnimationFrame(draw, document.body);		
-	}
-	
-	draw();
 }   
 
 window.onload = init;
@@ -92,7 +70,7 @@ window.onload = init;
 </head>
 <body>    
 	<h1>Timeline.js - CSS rectangles</h1>            
-	<div id="rect0"><img src = "http://fc07.deviantart.net/fs71/f/2011/171/f/5/wan_dog_icon_by_geans123-d3jgrdo.gif"></div>	 	
+	<img id="rect0" src = "http://fc07.deviantart.net/fs71/f/2011/171/f/5/wan_dog_icon_by_geans123-d3jgrdo.gif">	 	
 	<div id="rect1"></div>	 
 	<div id="rect2">TEXT</div>	 
 	<div id="rect3"></div>	 
