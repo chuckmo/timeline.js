@@ -12,7 +12,8 @@
 
 var Timeline = function() {    
 	this.name = "Global";
-	this.anims = [];   
+	this.anims = [];
+	this.targets = [];   
 	this.time = 0;      
 	this.totalTime = 0; 
 	this.loopCount = 0;	
@@ -49,10 +50,37 @@ Timeline.prototype.loop = function(n) {
 } 
 
 Timeline.prototype.draw = function(){
+		
+	for (var i=0; i<this.targets.length; i++){ 
 
-		console.log(this);
-		requestAnimationFrame(this.draw.bind(this), document.body);	
+		//position styles
+		this.targets[i].element.style.position = "absolute";
+		this.targets[i].element.style.left = this.targets[i].x + "px";
+		this.targets[i].element.style.top = this.targets[i].y + "px"; 
+		
+		//transform styles
+		this.targets[i].element.style["-webkit-transform"] = "rotate(" + this.targets[i].rotation + "deg)"; 
+		this.targets[i].element.style["-moz-transform"] = "rotate(" + this.targets[i].rotation + "deg)"; 
+		this.targets[i].element.style["-o-transform"] = "rotate(" + this.targets[i].rotation + "deg)"; 
+		this.targets[i].element.style["transform"] = "rotate(" + this.targets[i].rotation + "deg)"; 
+		this.targets[i].element.style["MozTransform"] = "rotate(" + this.targets[i].rotation + "deg)";
+		this.targets[i].element.style["WebkitTransform"] = "rotate(" + this.targets[i].rotation + "deg)";
+		this.targets[i].element.style["msTransform"] = "rotate(" + this.targets[i].rotation + "deg)";
+		this.targets[i].element.style.transform = "rotate(" + this.targets[i].rotation + "deg)"; 
+		
+		//opacity styles
+		this.targets[i].element.style.opacity  = this.targets[i].opacity;
 	
+		//for test
+		this.targets[i].element.style.background = "#FF0000";
+		this.targets[i].element.style.width = this.targets[i].width + "px";
+		this.targets[i].element.style.height = this.targets[i].height + "px"; 
+		
+	}
+		
+	
+	requestAnimationFrame(this.draw.bind(this), document.body);	
+		
 
 }       
 
@@ -147,6 +175,12 @@ function Anim(name, target, timeline) {
 	this.name = name;
 	this.target = target;
 	this.timeline = timeline;
+	
+	for (var i = 0; i < timeline.targets.length; i++)
+		if (timeline.targets[i] == target)
+			return false;
+	
+	timeline.targets.push(target);
 } 
                                  
 //delay, properties, duration, easing
