@@ -11,19 +11,25 @@
 // IN THE SOFTWARE.
 
 var Timeline = function() {    
-  this.name = "Global";
-  this.anims = [];   
+	this.name = "Global";
+	this.anims = [];   
 	this.time = 0;      
 	this.totalTime = 0; 
 	this.loopCount = 0;	
 	this.loopMode = 0;	 
 	this.playing = true;
-	var self = this;   
-	setInterval(function() {
-	  self.update();
+	
+	var self = this;
+	
+	setInterval(function() { 
+		self.update();
 	}, 1000/30);
-}   
+	
+	this.draw();
+	
 
+}   
+  
 Timeline.currentInstance = null;     
 
 Timeline.getGlobalInstance = function() {
@@ -40,7 +46,15 @@ Timeline.getGlobalInstance = function() {
 //>1 loop n-times
 Timeline.prototype.loop = function(n) {
   this.loopMode = n;
-}        
+} 
+
+Timeline.prototype.draw = function(){
+
+		console.log(this);
+		requestAnimationFrame(this.draw.bind(this), document.body);	
+	
+
+}       
 
 Timeline.prototype.stop = function() {
   this.playing = false;  
