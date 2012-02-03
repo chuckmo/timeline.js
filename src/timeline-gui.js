@@ -34,6 +34,9 @@ Timeline.prototype.initGUI = function() {
   this.draggingTimeScale = false;
   this.selectedKeys = [];  
   this.timeScale = 1;    
+  this.editHistory = [];
+  
+  this.debug = true;
             
   this.trackNameCounter = 0; 
   this.initTracks();
@@ -100,7 +103,41 @@ Timeline.prototype.initGUI = function() {
   }, false);    
   this.canvas.addEventListener('dblclick', function(event) {
     self.onMouseDoubleClick(event);
-  }, false);        
+  }, false);
+  
+  //Capture key presses (remember to use 'self' instead of 'this')
+  window.addEventListener('keyup',function(evt){
+  	if (evt.keyCode == 46){ //delete key
+		self.deleteSelectedKeys(); 
+		self.rebuildSelectedTracks();
+		self.hideKeyEditDialog();  		 
+  	}else if (evt.keyCode == 90){ // 'z' key
+  		var editObj = self.editHistory.pop();
+ 		var track = editObj.track;
+		for(var i=0; i<self.tracks.length; i++) {  
+			if (self.tracks[i].id != track.id) {
+			  continue;
+			}          
+			if (track.type == "property") { 			  
+			    track.keys.push({
+			      time: editObj.time,
+			      value: editObj.value,          
+			      easing: editObj.easing,
+			      track: track
+			    })      
+			   
+			  
+			}
+		}   
+		self.rebuildTrackAnimsFromKeys(track);    		
+		self.rebuildSelectedTracks();
+		self.hideKeyEditDialog();  	
+  	}
+  	
+  
+  
+  },true);
+          
 }                                                  
 
 Timeline.prototype.onMouseDown = function(event) {   
@@ -775,12 +812,14 @@ Timeline.prototype.showKeyEditDialog = function(mouseX, mouseY) {
 }     
 
 Timeline.prototype.deleteSelectedKeys = function() {
-  for(var i=0; i<this.selectedKeys.length; i++) {
-    var selectedKey = this.selectedKeys[i];
-    var keyIndex = selectedKey.track.keys.indexOf(selectedKey);
-    selectedKey.track.keys.splice(keyIndex, 1);
-  }         
-  this.rebuildSelectedTracks();
+	
+	for(var i=0; i<this.selectedKeys.length; i++) {
+		var selectedKey = this.selectedKeys[i];
+		var keyIndex = selectedKey.track.keys.indexOf(selectedKey);
+		var deletedKey = selectedKey.track.keys.splice(keyIndex, 1);
+		this.editHistory.push(deletedKey[0]);
+	}         
+	this.rebuildSelectedTracks();
 }
 
 Timeline.prototype.hideKeyEditDialog = function() {         
@@ -902,6 +941,9 @@ Timeline.prototype.load = function() {
   if (localStorage["timeline.js.settings.timeScale"]) {
     this.timeScale = localStorage["timeline.js.settings.timeScale"];                              
   }
+   
+  if (this.debug)
+  	return;
    
   var dataString = localStorage["timeline.js.data." + this.name];
   if (!dataString) return;                 
