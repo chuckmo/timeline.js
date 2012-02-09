@@ -27,8 +27,6 @@ var Timeline = function() {
 	}, 1000/30);
 	
 	this.draw();
-	
-
 }   
   
 Timeline.currentInstance = null;     
@@ -50,7 +48,15 @@ Timeline.prototype.loop = function(n) {
 } 
 
 Timeline.prototype.draw = function(){
-		
+
+	if(this.playing){	
+		this.updateCss();
+	}
+	
+	requestAnimationFrame(this.draw.bind(this), document.body);	
+}
+
+Timeline.prototype.updateCss = function(){
 	for (var i=0; i<this.targets.length; i++){ 
 
 		//position styles
@@ -75,13 +81,7 @@ Timeline.prototype.draw = function(){
 		this.targets[i].element.style.background = "#FF0000";
 		this.targets[i].element.style.width = this.targets[i].width + "px";
 		this.targets[i].element.style.height = this.targets[i].height + "px"; 
-		
 	}
-		
-	
-	requestAnimationFrame(this.draw.bind(this), document.body);	
-		
-
 }       
 
 Timeline.prototype.stop = function() {
@@ -387,4 +387,28 @@ for(var easingFunctionFamilyName in Timeline.Easing) {
   for(var easingFunctionName in easingFunctionFamily) {   
     Timeline.easingMap[easingFunctionFamilyName + "." + easingFunctionName] = easingFunctionFamily[easingFunctionName];
   }  
+}
+
+
+/**
+ * Provides requestAnimationFrame in a cross browser way.
+ * http://paulirish.com/2011/requestanimationframe-for-smart-animating/
+ */
+            
+if ( !window.requestAnimationFrame ) {
+
+	window.requestAnimationFrame = ( function() {
+
+		return window.webkitRequestAnimationFrame ||
+		window.mozRequestAnimationFrame ||
+		window.oRequestAnimationFrame ||
+		window.msRequestAnimationFrame ||
+		function( /* function FrameRequestCallback */ callback, /* DOMElement Element */ element ) {
+
+			window.setTimeout( callback, 1000 / 60 );
+
+		};
+
+	} )();
+
 }

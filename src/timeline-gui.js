@@ -186,6 +186,7 @@ Timeline.prototype.onDocumentMouseMove = function(event) {
   var y = event.layerY;
   
   if (this.draggingTime) {
+  	this.updateCss();
     this.time = this.xToTime(x);
     var animationEnd = this.findAnimationEnd();
     if (this.time < 0) this.time = 0;
@@ -211,7 +212,7 @@ Timeline.prototype.onDocumentMouseMove = function(event) {
 Timeline.prototype.onCanvasMouseMove = function(event) { 
   var x = event.layerX;
   var y = event.layerY;
-     
+   
   if (this.draggingTracksScrollThumb) {         
     this.tracksScrollThumbPos = y - this.headerHeight - this.tracksScrollThumbDragOffset;
     if (this.tracksScrollThumbPos < 0) {
@@ -263,24 +264,55 @@ Timeline.prototype.onMouseUp = function(event) {
 }
 
 Timeline.prototype.onMouseClick = function(event) {
-  if (event.layerX < 1*this.headerHeight - 4 * 0 && event.layerY < this.headerHeight) {
-    this.play();
-  }                     
-  if (event.layerX > 1*this.headerHeight - 4 * 0 && event.layerX < 2*this.headerHeight - 4 * 1 && event.layerY < this.headerHeight) {
-    this.pause();
-  }
-  
-  if (event.layerX > 2*this.headerHeight - 4 * 1 && event.layerX < 3*this.headerHeight - 4 * 2 && event.layerY < this.headerHeight) {
-    this.stop();
-  }
-  
-  if (event.layerX > 3*this.headerHeight - 4 * 2 && event.layerX < 4*this.headerHeight - 4 * 3 && event.layerY < this.headerHeight) {
-    this.export();
-  }          
-   
-  if (this.selectedKeys.length > 0 && !this.cancelKeyClick) {
-    this.showKeyEditDialog(event.pageX, event.pageY);
-  }  
+	if (event.layerX < 1*this.headerHeight - 4 * 0 && event.layerY < this.headerHeight) {
+		this.play();
+	}                     
+	if (event.layerX > 1*this.headerHeight - 4 * 0 && event.layerX < 2*this.headerHeight - 4 * 1 && event.layerY < this.headerHeight) {
+		
+		this.pause();
+		
+		var keyReference = this;
+		
+		for (var i = 0; i < this.targets.length; i++){
+			$(this.targets[i].element).draggable({
+			   stop: function(event, ui) {
+
+			   		
+			   		for(var i = 0; i < keyReference.tracks.length; i++){
+			   			if (keyReference.tracks[i].type == "property" && keyReference.tracks[i].target.element == this){
+			   				console.log(keyReference.tracks[i]);
+			   			
+			   				if (keyReference.tracks[i].name == "x"){
+			   					keyReference.addKeyAt(keyReference.tracks[i], keyReference.time, parseInt(this.style.left));
+			   					
+			   				}
+			   				if (keyReference.tracks[i].name == "y"){
+			   					keyReference.addKeyAt(keyReference.tracks[i], keyReference.time, parseInt(this.style.top));	
+			   					
+			   				}
+			   			}
+			   				
+			   		}
+			   			
+			   			
+			   		
+			   }
+			});
+		}
+			
+	}
+	
+	if (event.layerX > 2*this.headerHeight - 4 * 1 && event.layerX < 3*this.headerHeight - 4 * 2 && event.layerY < this.headerHeight) {
+		this.stop();
+	}
+	
+	if (event.layerX > 3*this.headerHeight - 4 * 2 && event.layerX < 4*this.headerHeight - 4 * 3 && event.layerY < this.headerHeight) {
+		this.export();
+	}          
+	
+	if (this.selectedKeys.length > 0 && !this.cancelKeyClick) {
+		this.showKeyEditDialog(event.pageX, event.pageY);
+	}  
 }  
 
 Timeline.prototype.onMouseDoubleClick = function(event) {
@@ -300,23 +332,26 @@ Timeline.prototype.onMouseDoubleClick = function(event) {
     this.time = this.totalTime = hours * 60 * 60 + minutes * 60 + seconds;
   }
   else if (x > this.trackLabelWidth && this.selectedKeys.length == 0 && y > this.headerHeight && y < this.canvasHeight - this.timeScrollHeight) {
-    this.addKeyAt(x, y);
+    this.addKeyAt(this.getTrackAt(x, y), this.xToTime(x));
   }     
 }                                           
 
-Timeline.prototype.addKeyAt = function(mouseX, mouseY) {
-  var selectedTrack = this.getTrackAt(mouseX, mouseY);
+Timeline.prototype.addKeyAt = function(selectedTrack, newTime, newValue) {
+  
+  console.log(newValue);
+  console.log(selectedTrack);
   
   if (!selectedTrack) {
     return;
   }
-  
+    
   var newKey = {
-      time: this.xToTime(mouseX),
+      time: newTime,
       value: selectedTrack.target[selectedTrack.propertyName],
       easing: Timeline.Easing.Linear.EaseNone,
       track: selectedTrack
   };
+  	
   if (selectedTrack.keys.length == 0) {
     selectedTrack.keys.push(newKey);
   }
@@ -328,19 +363,27 @@ Timeline.prototype.addKeyAt = function(mouseX, mouseY) {
     newKey.value = selectedTrack.keys[selectedTrack.keys.length-1].value;  
     selectedTrack.keys.push(newKey);  
   }
-  else for(var i=1; i<selectedTrack.keys.length; i++) {  
-    if (selectedTrack.keys[i].time > newKey.time) {
-      var k = (selectedTrack.keys[i].time - newKey.time)/(selectedTrack.keys[i].time - selectedTrack.keys[i-1].time);  
-      var delta = selectedTrack.keys[i].value - selectedTrack.keys[i-1].value;
-      newKey.easing = selectedTrack.keys[i-1].easing;                    
-      newKey.value = selectedTrack.keys[i-1].value + delta * newKey.easing(k);
-      selectedTrack.keys.splice(i, 0, newKey);
-      break;
-    }    
-  }                 
+  else {
+	  for(var i=1; i<selectedTrack.keys.length; i++) {  
+	    if (selectedTrack.keys[i].time > newKey.time) {
+	      var k = (selectedTrack.keys[i].time - newKey.time)/(selectedTrack.keys[i].time - selectedTrack.keys[i-1].time);  
+	      var delta = selectedTrack.keys[i].value - selectedTrack.keys[i-1].value;
+	      newKey.easing = selectedTrack.keys[i-1].easing;                    
+	      newKey.value = selectedTrack.keys[i-1].value + delta * newKey.easing(k);
+	      selectedTrack.keys.splice(i, 0, newKey);
+	      break;
+	    }    
+	  }
+  }
+  
+  
+  if (newValue != undefined){
+  	newKey.value = newValue;
+  }
+                   
   this.selectedKeys = [newKey];
   this.rebuildSelectedTracks();      
-}                                                                                  
+}                                                                                 
 
 Timeline.prototype.getTrackAt = function(mouseX, mouseY) {                     
   var scrollY = this.tracksScrollY * (this.tracks.length * this.trackLabelHeight - this.canvas.height + this.headerHeight);

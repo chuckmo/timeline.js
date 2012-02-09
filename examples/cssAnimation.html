@@ -26,9 +26,12 @@ h1 {
 <script type="text/javascript" src="../src/timeline.js"></script>   
 <script type="text/javascript" src="../src/timeline-gui.js"></script>
 <script type="text/javascript" src="js/RequestAnimationFrame.js"></script>
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js" ></script>
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.16/jquery-ui.js"></script>
+
 <script type="text/javascript"> 
 
-function init() {	
+function init(){	
 	var rectangles = [];
 	
 	for(var i=0; i<4; i++) {
@@ -61,10 +64,10 @@ function init() {
 	anim("rectangles[1]",rectangles[1]).to({"width":1},0).to({"width":50},3, Timeline.Easing.Cubic.EaseOut);
    
 	Timeline.getGlobalInstance().loop(-1); //loop forever
-	
-}   
+}
 
-window.onload = init;
+window.onload = init;  
+
 
 </script>	  
 </head>
