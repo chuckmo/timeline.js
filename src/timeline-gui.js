@@ -32,10 +32,14 @@ Timeline.prototype.initGUI = function() {
   this.draggingTimeScrollThumb = false;
   this.draggingKeys = false;
   this.draggingTimeScale = false;
+  this.boundingBox = null;
   this.selectedKeys = [];  
   this.timeScale = 1;    
   this.editHistory = [];
+  this.mouseX = null;
+  this.mouseY = null;
   
+  //remove for save to be enabled...
   this.debug = true;
             
   this.trackNameCounter = 0; 
@@ -163,6 +167,8 @@ Timeline.prototype.onMouseDown = function(event) {
     this.selectKeys(event.layerX, event.layerY);
     if (this.selectedKeys.length > 0) {
       this.draggingKeys = true;
+    }else{
+    	this.boundingBox = {"x":x,"y": y}
     }       
     this.cancelKeyClick = false;
   }       
@@ -184,6 +190,8 @@ Timeline.prototype.onMouseDown = function(event) {
 Timeline.prototype.onDocumentMouseMove = function(event) { 
   var x = event.layerX;
   var y = event.layerY;
+  this.mouseX = x;
+  this.mouseY = y;
   
   if (this.draggingTime) {
   	this.updateCss();
@@ -243,6 +251,7 @@ Timeline.prototype.onCanvasMouseMove = function(event) {
       this.timeScrollX = 0;
     }
   } 
+
 }              
 
 Timeline.prototype.onMouseUp = function(event) {
@@ -261,6 +270,16 @@ Timeline.prototype.onMouseUp = function(event) {
   if (this.draggingTimeScrollThumb) {
     this.draggingTimeScrollThumb = false;   
   }
+  if(this.boundingBox != null){
+  	for(var i = 0; i < Math.abs(this.boundingBox.x - event.layerX); i+=5)
+  		for(var j = 0; j < Math.abs(this.boundingBox.y - event.layerY); j+=5){
+  			var keySearch = this.selectKeys(this.boundingBox.x+i,this.boundingBox.y+j);
+  			if (keySearch != undefined)
+  				console.log(keySearch);
+  		}
+  			  	
+  	this.boundingBox = null;
+  }
 }
 
 Timeline.prototype.onMouseClick = function(event) {
@@ -276,8 +295,6 @@ Timeline.prototype.onMouseClick = function(event) {
 		for (var i = 0; i < this.targets.length; i++){
 			$(this.targets[i].element).draggable({
 			   stop: function(event, ui) {
-
-			   		
 			   		for(var i = 0; i < keyReference.tracks.length; i++){
 			   			if (keyReference.tracks[i].type == "property" && keyReference.tracks[i].target.element == this){
 			   				console.log(keyReference.tracks[i]);
@@ -291,11 +308,7 @@ Timeline.prototype.onMouseClick = function(event) {
 			   					
 			   				}
 			   			}
-			   				
 			   		}
-			   			
-			   			
-			   		
 			   }
 			});
 		}
@@ -376,7 +389,6 @@ Timeline.prototype.addKeyAt = function(selectedTrack, newTime, newValue) {
 	  }
   }
   
-  
   if (newValue != undefined){
   	newKey.value = newValue;
   }
@@ -410,7 +422,8 @@ Timeline.prototype.selectKeys = function(mouseX, mouseY) {
     var x = this.timeToX(key.time);    
     
     if (x >= mouseX - this.trackLabelHeight*0.3 && x <= mouseX + this.trackLabelHeight*0.3) {
-      this.selectedKeys.push(key); 
+      this.selectedKeys.push(key);
+      return(key); 
       break;
     }
   }    
@@ -560,6 +573,11 @@ Timeline.prototype.updateGUI = function() {
   this.drawLine(0, this.headerHeight, w, this.headerHeight, "#000000");
   this.drawLine(0, h - this.timeScrollHeight, this.trackLabelWidth, h - this.timeScrollHeight, "#000000");
   this.drawLine(this.trackLabelWidth, h - this.timeScrollHeight - 1, this.trackLabelWidth, h, "#000000");
+  
+  //bounding box for selection
+  if(this.boundingBox != null){
+  	this.drawRect(this.boundingBox.x, this.boundingBox.y, this.mouseX - this.boundingBox.x , this.mouseY - this.boundingBox.y, "rgba(0, 0, 256, 0.2)");
+  }
 }        
 
 Timeline.prototype.timeToX = function(time) {   

@@ -78,7 +78,6 @@ Timeline.prototype.updateCss = function(){
 		this.targets[i].element.style.opacity  = this.targets[i].opacity;
 	
 		//for test
-		this.targets[i].element.style.background = "#FF0000";
 		this.targets[i].element.style.width = this.targets[i].width + "px";
 		this.targets[i].element.style.height = this.targets[i].height + "px"; 
 	}

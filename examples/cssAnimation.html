@@ -42,9 +42,11 @@ function init(){
 			width: 50,
 			height: 50,
 			rotation: 0,
+			color: 0,
 			element: document.getElementById(id)
 		})
 	}        
+	
 	
 	anim("dog",rectangles[0]).to({"x":100},0).to({"x":200},1.0290566037735849, Timeline.Easing.Cubic.EaseOut);
 	anim("dog",rectangles[0]).to({"y":100},0).to({"y":200},1.0290566037735849, Timeline.Easing.Cubic.EaseOut).to({"y":200},0.9679245283018867).to({"y":200},0.2852830188679245).to({"y":-50},0.7233962264150944, Timeline.Easing.Quadratic.EaseIn);
@@ -61,7 +63,7 @@ function init(){
 	anim("rectangles[3]",rectangles[3]).to({"rotation":0},0).to({"rotation":90},0.9984905660377358, Timeline.Easing.Cubic.EaseOut);
 	anim("rectangles[1]",rectangles[1]).to({"opacity":.5},0);
 	
-	anim("rectangles[1]",rectangles[1]).to({"width":1},0).to({"width":50},3, Timeline.Easing.Cubic.EaseOut);
+
    
 	Timeline.getGlobalInstance().loop(-1); //loop forever
 }
@@ -74,8 +76,8 @@ window.onload = init;
 <body>    
 	<h1>Timeline.js - CSS rectangles</h1>            
 	<img id="rect0" src = "http://fc07.deviantart.net/fs71/f/2011/171/f/5/wan_dog_icon_by_geans123-d3jgrdo.gif">	 	
-	<div id="rect1"></div>	 
+	<div id="rect1" style="background-color: red;"></div>	 
 	<div id="rect2">TEXT</div>	 
-	<div id="rect3"></div>	 
+	<div id="rect3"  style="background-color: green;"></div>	 
 </body>
 </html>
