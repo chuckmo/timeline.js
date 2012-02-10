@@ -290,21 +290,21 @@ Timeline.prototype.onMouseClick = function(event) {
 		
 		this.pause();
 		
-		var keyReference = this;
+		var timelineReference = this;
 		
 		for (var i = 0; i < this.targets.length; i++){
 			$(this.targets[i].element).draggable({
 			   stop: function(event, ui) {
-			   		for(var i = 0; i < keyReference.tracks.length; i++){
-			   			if (keyReference.tracks[i].type == "property" && keyReference.tracks[i].target.element == this){
-			   				console.log(keyReference.tracks[i]);
+			   		for(var i = 0; i < timelineReference.tracks.length; i++){
+			   			if (timelineReference.tracks[i].type == "property" && timelineReference.tracks[i].target.element == this){
+			   				console.log(timelineReference.tracks[i]);
 			   			
-			   				if (keyReference.tracks[i].name == "x"){
-			   					keyReference.addKeyAt(keyReference.tracks[i], keyReference.time, parseInt(this.style.left));
+			   				if (timelineReference.tracks[i].name == "x"){
+			   					timelineReference.addKeyAt(timelineReference.tracks[i], timelineReference.time, parseInt(this.style.left));
 			   					
 			   				}
-			   				if (keyReference.tracks[i].name == "y"){
-			   					keyReference.addKeyAt(keyReference.tracks[i], keyReference.time, parseInt(this.style.top));	
+			   				if (timelineReference.tracks[i].name == "y"){
+			   					timelineReference.addKeyAt(timelineReference.tracks[i], timelineReference.time, parseInt(this.style.top));	
 			   					
 			   				}
 			   			}
@@ -321,7 +321,12 @@ Timeline.prototype.onMouseClick = function(event) {
 	
 	if (event.layerX > 3*this.headerHeight - 4 * 2 && event.layerX < 4*this.headerHeight - 4 * 3 && event.layerY < this.headerHeight) {
 		this.export();
-	}          
+	} 
+	   
+	//click on title
+	if (event.layerX < 4*this.headerHeight - 4 * 3 && event.layerY > this.headerHeight) {
+		console.log(this.getTrackAt(event.layerX, event.layerY));
+	}   
 	
 	if (this.selectedKeys.length > 0 && !this.cancelKeyClick) {
 		this.showKeyEditDialog(event.pageX, event.pageY);
@@ -402,7 +407,10 @@ Timeline.prototype.getTrackAt = function(mouseX, mouseY) {
   var clickedTrackNumber = Math.floor((mouseY - this.headerHeight + scrollY)/this.trackLabelHeight);
                                                  
   if (clickedTrackNumber >= 0 && clickedTrackNumber >= this.tracks.length || this.tracks[clickedTrackNumber].type == "object") {    
+    console.log(this.tracks[clickedTrackNumber]);
     return null;
+
+
   }    
   
   return this.tracks[clickedTrackNumber];  
