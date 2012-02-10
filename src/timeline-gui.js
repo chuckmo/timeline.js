@@ -15,13 +15,13 @@ Timeline.prototype.initGUI = function() {
 
   this.trackLabelWidth = 108;  
   this.trackLabelHeight = 20; 
-  this.tracksScrollWidth = 16;  
+  this.tracksScrollWidth = 10;  
   this.tracksScrollHeight = 0;
   this.tracksScrollThumbPos = 0;   
   this.tracksScrollThumbHeight = 0; 
   this.tracksScrollY = 0;    
   this.timeScrollWidth = 0;  
-  this.timeScrollHeight = 16;
+  this.timeScrollHeight = 10;
   this.timeScrollThumbPos = 0;   
   this.timeScrollThumbWidth = 0;   
   this.timeScrollX = 0;
@@ -275,7 +275,7 @@ Timeline.prototype.onMouseUp = function(event) {
   		for(var j = 0; j < Math.abs(this.boundingBox.y - event.layerY); j+=5){
   			var keySearch = this.selectKeys(this.boundingBox.x+i,this.boundingBox.y+j);
   			if (keySearch != undefined)
-  				console.log(keySearch);
+  				console.log(keySearch); //temp for box select
   		}
   			  	
   	this.boundingBox = null;
@@ -297,7 +297,6 @@ Timeline.prototype.onMouseClick = function(event) {
 			   stop: function(event, ui) {
 			   		for(var i = 0; i < timelineReference.tracks.length; i++){
 			   			if (timelineReference.tracks[i].type == "property" && timelineReference.tracks[i].target.element == this){
-			   				console.log(timelineReference.tracks[i]);
 			   			
 			   				if (timelineReference.tracks[i].name == "x"){
 			   					timelineReference.addKeyAt(timelineReference.tracks[i], timelineReference.time, parseInt(this.style.left));
@@ -325,8 +324,16 @@ Timeline.prototype.onMouseClick = function(event) {
 	   
 	//click on title
 	if (event.layerX < 4*this.headerHeight - 4 * 3 && event.layerY > this.headerHeight) {
-		console.log(this.getTrackAt(event.layerX, event.layerY));
+		
+		var trackObject = this.getTrackAt(event.layerX, event.layerY);
+		
+		if (trackObject == null || trackObject.type != "object")
+			return;
+		
+		trackObject.visible = !trackObject.visible;
 	}   
+
+
 	
 	if (this.selectedKeys.length > 0 && !this.cancelKeyClick) {
 		this.showKeyEditDialog(event.pageX, event.pageY);
@@ -355,10 +362,7 @@ Timeline.prototype.onMouseDoubleClick = function(event) {
 }                                           
 
 Timeline.prototype.addKeyAt = function(selectedTrack, newTime, newValue) {
-  
-  console.log(newValue);
-  console.log(selectedTrack);
-  
+
   if (!selectedTrack) {
     return;
   }
@@ -402,18 +406,17 @@ Timeline.prototype.addKeyAt = function(selectedTrack, newTime, newValue) {
   this.rebuildSelectedTracks();      
 }                                                                                 
 
-Timeline.prototype.getTrackAt = function(mouseX, mouseY) {                     
-  var scrollY = this.tracksScrollY * (this.tracks.length * this.trackLabelHeight - this.canvas.height + this.headerHeight);
-  var clickedTrackNumber = Math.floor((mouseY - this.headerHeight + scrollY)/this.trackLabelHeight);
-                                                 
-  if (clickedTrackNumber >= 0 && clickedTrackNumber >= this.tracks.length || this.tracks[clickedTrackNumber].type == "object") {    
-    console.log(this.tracks[clickedTrackNumber]);
-    return null;
+Timeline.prototype.getTrackAt = function(mouseX, mouseY) {
 
-
-  }    
-  
-  return this.tracks[clickedTrackNumber];  
+	var displayTracks = this.getDisplayedTracks();               
+	var scrollY = this.tracksScrollY * (displayTracks.length * this.trackLabelHeight - this.canvas.height + this.headerHeight);
+	var clickedTrackNumber = Math.floor((mouseY - this.headerHeight + scrollY)/this.trackLabelHeight);
+	                                             
+	if (clickedTrackNumber >= 0 && clickedTrackNumber >= displayTracks.length) {    
+	return null;
+	}    
+	
+	return displayTracks[clickedTrackNumber];  
 }
 
 Timeline.prototype.selectKeys = function(mouseX, mouseY) {                         
@@ -421,7 +424,7 @@ Timeline.prototype.selectKeys = function(mouseX, mouseY) {
   
   var selectedTrack = this.getTrackAt(mouseX, mouseY);
   
-  if (!selectedTrack) {
+  if (!selectedTrack || selectedTrack.type == "object") {
     return;
   }
 
@@ -446,13 +449,14 @@ Timeline.prototype.updateGUI = function() {
     this.initGUI();    
   }                
   
+  var displayTracks = this.getDisplayedTracks();
   this.canvas.width = window.innerWidth;
   this.canvas.height = this.canvasHeight;                    
   var w = this.canvas.width;
   var h = this.canvas.height;    
   
   this.tracksScrollHeight = this.canvas.height - this.headerHeight - this.timeScrollHeight;
-  var totalTracksHeight = this.tracks.length * this.trackLabelHeight;
+  var totalTracksHeight = displayTracks.length * this.trackLabelHeight;
   var tracksScrollRatio = this.tracksScrollHeight/totalTracksHeight;
   this.tracksScrollThumbHeight = Math.min(Math.max(20, this.tracksScrollHeight * tracksScrollRatio), this.tracksScrollHeight);
   
@@ -505,16 +509,19 @@ Timeline.prototype.updateGUI = function() {
   this.c.beginPath();
   this.c.moveTo(0, this.headerHeight+1);
   this.c.lineTo(this.canvas.width, this.headerHeight + 1);  
+
+
   this.c.lineTo(this.canvas.width, this.canvas.height - this.timeScrollHeight);  
   this.c.lineTo(0, this.canvas.height - this.timeScrollHeight);
   this.c.clip();
-      
-  for(var i=0; i<this.tracks.length; i++) { 
+       
+  for(var i=0; i<displayTracks.length; i++) { 
     var yshift = this.headerHeight + this.trackLabelHeight * (i + 1);
-    var scrollY = this.tracksScrollY * (this.tracks.length * this.trackLabelHeight - this.canvas.height + this.headerHeight);
+    var scrollY = this.tracksScrollY * (displayTracks.length * this.trackLabelHeight - this.canvas.height + this.headerHeight) + this.timeScrollHeight; 
     yshift -= scrollY;
     if (yshift < this.headerHeight) continue;
-    this.drawTrack(this.tracks[i], yshift);     
+    
+    this.drawTrack(displayTracks[i], yshift);     
   }     
   
   this.c.restore();                                                       
@@ -586,7 +593,21 @@ Timeline.prototype.updateGUI = function() {
   if(this.boundingBox != null){
   	this.drawRect(this.boundingBox.x, this.boundingBox.y, this.mouseX - this.boundingBox.x , this.mouseY - this.boundingBox.y, "rgba(0, 0, 256, 0.2)");
   }
-}        
+}     
+
+Timeline.prototype.getDisplayedTracks = function() {   
+  var displayTracks = [];
+  for(var i=0; i<this.tracks.length; i++) { 
+	if (this.tracks[i].type == "property")
+		if (this.tracks[i].parent.visible == false) 
+			continue;
+    displayTracks.push(this.tracks[i]);     
+  }   
+  
+
+  
+  return displayTracks;
+}   
 
 Timeline.prototype.timeToX = function(time) {   
   var animationEnd = this.findAnimationEnd();
@@ -609,9 +630,9 @@ Timeline.prototype.drawTrack = function(track, y) {
   var xshift = 5;
   if (track.type == "object") {  
     //object track header background
-    this.drawRect(0, y - this.trackLabelHeight + 1, this.trackLabelWidth, this.trackLabelHeight-1, "#FFFFFF");    
+    this.drawRect(0, y - this.trackLabelHeight + 1, this.trackLabelWidth, this.trackLabelHeight-1, "#555");    
     //label color
-    this.c.fillStyle = "#000000";
+    this.c.fillStyle = "#fff";
   }                              
   else {                         
     xshift += 10;
@@ -634,8 +655,8 @@ Timeline.prototype.drawTrack = function(track, y) {
       }
       var first = (i == 0);
       var last = (i == track.keys.length - 1);
-      this.drawRombus(this.timeToX(key.time), y - this.trackLabelHeight*0.5, this.trackLabelHeight*0.5, this.trackLabelHeight*0.5, "#999999", true, true, selected ? "#FF0000" : "#666666");
-      this.drawRombus(this.timeToX(key.time), y - this.trackLabelHeight*0.5, this.trackLabelHeight*0.5, this.trackLabelHeight*0.5, "#DDDDDD", !first, !last);      
+      this.drawRombus(this.timeToX(key.time), y - this.trackLabelHeight*0.5, this.trackLabelHeight*0.5, this.trackLabelHeight*0.5, "#999999", true, true, selected ? "#0000FF" : "#666666");
+      this.drawRombus(this.timeToX(key.time), y - this.trackLabelHeight*0.5, this.trackLabelHeight*0.5, this.trackLabelHeight*0.5, "#550055", !first, !last);      
     }
   }
 }
@@ -710,7 +731,8 @@ Timeline.prototype.initTracks = function() {
         type: "object",
         id: anim.targetName,
         name: anim.targetName,
-        target: anim.target,        
+        target: anim.target,  
+        visible: true,      
         propertyTracks: []
       };                         
       if (!objectTrack.name) {
