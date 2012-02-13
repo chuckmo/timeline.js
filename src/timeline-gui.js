@@ -11,42 +11,43 @@
 // IN THE SOFTWARE.      
 
 Timeline.prototype.initGUI = function() {  
-  var self = this;     
-
-  this.trackLabelWidth = 108;  
-  this.trackLabelHeight = 20; 
-  this.tracksScrollWidth = 16;  
-  this.tracksScrollHeight = 0;
-  this.tracksScrollThumbPos = 0;   
-  this.tracksScrollThumbHeight = 0; 
-  this.tracksScrollY = 0;    
-  this.timeScrollWidth = 0;  
-  this.timeScrollHeight = 16;
-  this.timeScrollThumbPos = 0;   
-  this.timeScrollThumbWidth = 0;   
-  this.timeScrollX = 0;
-  this.headerHeight = 30;
-  this.canvasHeight = 200; 
-  this.draggingTime = false;    
-  this.draggingTracksScrollThumb = false;    
-  this.draggingTimeScrollThumb = false;
-  this.draggingKeys = false;
-  this.draggingTimeScale = false;
-  this.boundingBox = null;
-  this.selectedKeys = [];  
-  this.timeScale = 1;    
-  this.editHistory = [];
-  
-  this.mousePosition = {x: 0, y:0}
-  
-  //remove for save to be enabled...
-  this.debug = true;
-            
-  this.trackNameCounter = 0; 
-  this.initTracks();
-  this.load();    
-  
-  this.container = document.createElement("div");  
+	var self = this;     
+	
+	this.trackLabelWidth = 108;  
+	this.trackLabelHeight = 20; 
+	this.tracksScrollWidth = 16;  
+	this.tracksScrollHeight = 0;
+	this.tracksScrollThumbPos = 0;   
+	this.tracksScrollThumbHeight = 0; 
+	this.tracksScrollY = 0;    
+	this.timeScrollWidth = 0;  
+	this.timeScrollHeight = 16;
+	this.timeScrollThumbPos = 0;   
+	this.timeScrollThumbWidth = 0;   
+	this.timeScrollX = 0;
+	this.headerHeight = 30;
+	this.canvasHeight = 200; 
+	this.draggingTime = false;    
+	this.draggingTracksScrollThumb = false;    
+	this.draggingTimeScrollThumb = false;
+	this.draggingKeys = false;
+	this.draggingTimeScale = false;
+	this.boundingBox = null;
+	this.selectedKeys = [];  
+	this.timeScale = 1;    
+	this.editHistory = [];
+	
+	this.mousePosition = {x: 0, y:0}
+	this.shiftPressed = false;
+	
+	//remove for save to be enabled...
+	this.debug = true;
+	    
+	this.trackNameCounter = 0; 
+	this.initTracks();
+	this.load();    
+	
+	this.container = document.createElement("div");  
 	this.container.style.width = "100%";    
 	this.container.style.height = this.canvasHeight + "px";
 	this.container.style.background = "#EEEEEE";	
@@ -55,12 +56,12 @@ Timeline.prototype.initGUI = function() {
 	this.container.style.bottom = "0px";      	   
 	document.body.appendChild(this.container);     
   
-  this.splitter = document.createElement("div");
-  this.splitter.style.width = "100%";       
-  this.splitter.style.height = "4px";
-  this.splitter.style.cursor = "ns-resize";
-  this.splitter.style.position = "fixed";	  
-  this.splitter.style.left = "0px";	  
+	this.splitter = document.createElement("div");
+	this.splitter.style.width = "100%";       
+	this.splitter.style.height = "4px";
+	this.splitter.style.cursor = "ns-resize";
+	this.splitter.style.position = "fixed";	  
+	this.splitter.style.left = "0px";	  
 	this.splitter.style.bottom = (this.canvasHeight - 2) + "px";   
 	this.splitter.addEventListener("mousedown", function() {
 	  function mouseMove(e) {         
@@ -86,63 +87,83 @@ Timeline.prototype.initGUI = function() {
 	this.canvas.width = 0;    
 	this.container.appendChild(this.canvas);
 
+	
+	this.buildInputDialog();
+	
+	var self = this;
+	
+	this.canvas.addEventListener('click', function(event) {
+		self.onMouseClick(event);
+	}, false);
+	
+	this.canvas.addEventListener('mousedown', function(event) {
+		self.onMouseDown(event);
+	}, false);
+	document.body.addEventListener('mousemove', function(event) {
+		self.onDocumentMouseMove(event);
+	}, false);
+	this.canvas.addEventListener('mousemove', function(event) {
+		self.onCanvasMouseMove(event);
+	}, false);
+	document.body.addEventListener('mouseup', function(event) {
+		self.onMouseUp(event);
+	}, false);  
+	this.canvas.addEventListener('dblclick', function(event) {
+		self.onMouseDoubleClick(event);
+	}, false);
   
-  this.buildInputDialog();
+	
+	//scrollbars
+	$(this.canvas).bind('mouseenter mouseleave', function() { $('body').css('overflow-y', 'auto') });
+	$(this.canvas).bind('mouseenter', function() { $('body').css('overflow-y', 'hidden');});
+
   
-  var self = this;
-  this.canvas.addEventListener('click', function(event) {
-     self.onMouseClick(event);
-  }, false);
-  this.canvas.addEventListener('mousedown', function(event) {
-    self.onMouseDown(event);
-  }, false);
-  document.body.addEventListener('mousemove', function(event) {
-    self.onDocumentMouseMove(event);
-  }, false);
-  this.canvas.addEventListener('mousemove', function(event) {
-    self.onCanvasMouseMove(event);
-  }, false);
-  document.body.addEventListener('mouseup', function(event) {
-    self.onMouseUp(event);
-  }, false);    
-  this.canvas.addEventListener('dblclick', function(event) {
-    self.onMouseDoubleClick(event);
-  }, false);
-  
-  
-  
-  //Capture key presses (remember to use 'self' instead of 'this')
-  window.addEventListener('keyup',function(evt){
-  	if (evt.keyCode == 46){ //delete key
-		self.deleteSelectedKeys(); 
-		self.rebuildSelectedTracks();
-		self.hideKeyEditDialog();  		 
-  	}else if (evt.keyCode == 90){ // 'z' key
-  		var editObj = self.editHistory.pop();
- 		var track = editObj.track;
-		for(var i=0; i<self.tracks.length; i++) {  
-			if (self.tracks[i].id != track.id) {
-			  continue;
-			}          
-			if (track.type == "property") { 			  
-			    track.keys.push({
-			      time: editObj.time,
-			      value: editObj.value,          
-			      easing: editObj.easing,
-			      track: track
-			    })      
-			   
-			  
-			}
-		}   
-		self.rebuildTrackAnimsFromKeys(track);    		
-		self.rebuildSelectedTracks();
-		self.hideKeyEditDialog();  	
-  	}
-  	
-  
-  
-  },true);
+	//Capture key presses (remember to use 'self' instead of 'this')
+	window.addEventListener('keyup',function(evt){
+		if (evt.keyCode == 46){ //delete key
+			self.deleteSelectedKeys(); 
+			self.rebuildSelectedTracks();
+			self.hideKeyEditDialog();  		 
+		}else if (evt.keyCode == 90){ // 'z' key
+			var editObj = self.editHistory.pop();
+			var track = editObj.track;
+			for(var i=0; i<self.tracks.length; i++) {  
+				if (self.tracks[i].id != track.id) {
+				  continue;
+				}          
+				if (track.type == "property") { 			  
+				    track.keys.push({
+				      time: editObj.time,
+				      value: editObj.value,          
+				      easing: editObj.easing,
+				      track: track
+				    })      
+				   
+				  
+				}
+			}   
+			self.rebuildTrackAnimsFromKeys(track);    		
+			self.rebuildSelectedTracks();
+			self.hideKeyEditDialog();  	
+		}else if (evt.keyCode == 16){  //SHIFT KEY
+			self.shiftPressed = false;
+		}
+		
+	
+	
+	},true);
+	
+	window.addEventListener('keydown',function(evt){
+		if (evt.keyCode == 16){ //delete key
+			self.shiftPressed = true;
+		}
+	
+	},true);
+	
+	
+	//check if shift key is down or not
+	$(document).bind('keyup keydown', function(e){this.shiftPressed = e.shiftKey} );
+
           
 }    
 
@@ -161,9 +182,6 @@ Timeline.prototype.onMouseDown = function(event) {
   
   var x = this.mousePosition.x;
   var y = this.mousePosition.y;
-  
-  //console.log(event.clientY - this.splitter.offsetTop-2); //for
-  //console.log(this.mousePosition.y);
   
   if (this.mousePosition.x > this.trackLabelWidth && this.mousePosition.y < this.headerHeight) {
     //timeline
@@ -305,6 +323,13 @@ Timeline.prototype.onMouseClick = function(event) {
 		
 		for (var i = 0; i < this.targets.length; i++){
 			$(this.targets[i].element).draggable({
+				drag: function(event, ui){
+					
+					
+					if (timelineReference.shiftPressed)
+						return false;
+					
+				},
 			   stop: function(event, ui) {
 			   		for(var i = 0; i < timelineReference.tracks.length; i++){
 			   			if (timelineReference.tracks[i].type == "property" && timelineReference.tracks[i].target.element == this){
