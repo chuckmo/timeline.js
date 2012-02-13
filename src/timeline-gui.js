@@ -15,13 +15,13 @@ Timeline.prototype.initGUI = function() {
 
   this.trackLabelWidth = 108;  
   this.trackLabelHeight = 20; 
-  this.tracksScrollWidth = 10;  
+  this.tracksScrollWidth = 16;  
   this.tracksScrollHeight = 0;
   this.tracksScrollThumbPos = 0;   
   this.tracksScrollThumbHeight = 0; 
   this.tracksScrollY = 0;    
   this.timeScrollWidth = 0;  
-  this.timeScrollHeight = 10;
+  this.timeScrollHeight = 16;
   this.timeScrollThumbPos = 0;   
   this.timeScrollThumbWidth = 0;   
   this.timeScrollX = 0;
@@ -36,8 +36,8 @@ Timeline.prototype.initGUI = function() {
   this.selectedKeys = [];  
   this.timeScale = 1;    
   this.editHistory = [];
-  this.mouseX = null;
-  this.mouseY = null;
+  
+  this.mousePosition = {x: 0, y:0}
   
   //remove for save to be enabled...
   this.debug = true;
@@ -109,6 +109,8 @@ Timeline.prototype.initGUI = function() {
     self.onMouseDoubleClick(event);
   }, false);
   
+  
+  
   //Capture key presses (remember to use 'self' instead of 'this')
   window.addEventListener('keyup',function(evt){
   	if (evt.keyCode == 46){ //delete key
@@ -142,60 +144,70 @@ Timeline.prototype.initGUI = function() {
   
   },true);
           
-}                                                  
+}    
+
+
+//get the position of the mouse relative to the timeline
+Timeline.prototype.updateMousePosition = function(event) {
+	this.mousePosition.x = event.layerX;
+	this.mousePosition.y = event.layerY;
+}                                             
 
 Timeline.prototype.onMouseDown = function(event) {   
+  
+  this.updateMousePosition(event);
+  
   this.selectedKeys = [];    
   
-  var x = event.layerX;
-  var y = event.layerY;
+  var x = this.mousePosition.x;
+  var y = this.mousePosition.y;
   
-  if (x > this.trackLabelWidth && y < this.headerHeight) {
+  //console.log(event.clientY - this.splitter.offsetTop-2); //for
+  //console.log(this.mousePosition.y);
+  
+  if (this.mousePosition.x > this.trackLabelWidth && this.mousePosition.y < this.headerHeight) {
     //timeline
     this.draggingTime = true; 
     this.onCanvasMouseMove(event);
   }             
-  else if (x > this.canvas.width - this.tracksScrollWidth && y > this.headerHeight) {  
+  else if (this.mousePosition.x > this.canvas.width - this.tracksScrollWidth && this.mousePosition.y > this.headerHeight) {  
     //tracks scroll
-    if (y >= this.headerHeight + this.tracksScrollThumbPos && y <= this.headerHeight + this.tracksScrollThumbPos + this.tracksScrollThumbHeight) {
-      this.tracksScrollThumbDragOffset = y - this.headerHeight - this.tracksScrollThumbPos;
+    if (this.mousePosition.y >= this.headerHeight + this.tracksScrollThumbPos && this.mousePosition.y <= this.headerHeight + this.tracksScrollThumbPos + this.tracksScrollThumbHeight) {
+      this.tracksScrollThumbDragOffset = this.mousePosition.y - this.headerHeight - this.tracksScrollThumbPos;
       this.draggingTracksScrollThumb = true;
     }
   }
-  else if (x > this.trackLabelWidth && y > this.headerHeight && y < this.canvasHeight - this.timeScrollHeight) {
+  else if (this.mousePosition.x > this.trackLabelWidth && this.mousePosition.y > this.headerHeight && this.mousePosition.y < this.canvasHeight - this.timeScrollHeight) {
     //keys
-    this.selectKeys(event.layerX, event.layerY);
+    this.selectKeys(this.mousePosition.x, this.mousePosition.y);
     if (this.selectedKeys.length > 0) {
       this.draggingKeys = true;
     }else{
-    	this.boundingBox = {"x":x,"y": y}
+    	this.boundingBox = {"x":this.mousePosition.x,"y": this.mousePosition.y}
     }       
     this.cancelKeyClick = false;
   }       
-  else if (x < this.trackLabelWidth && y > this.canvasHeight - this.timeScrollHeight) {         
+  else if (this.mousePosition.x < this.trackLabelWidth && this.mousePosition.y > this.canvasHeight - this.timeScrollHeight) {         
     //time scale
-    this.timeScale = Math.max(0.01, Math.min((this.trackLabelWidth - x) / this.trackLabelWidth, 1));
+    this.timeScale = Math.max(0.01, Math.min((this.trackLabelWidth - this.mousePosition.x) / this.trackLabelWidth, 1));
     this.draggingTimeScale = true;   
     this.save();
   }   
-  else if (x > this.trackLabelWidth && y > this.canvasHeight - this.timeScrollHeight) {
+  else if (this.mousePosition.x > this.trackLabelWidth && this.mousePosition.y > this.canvasHeight - this.timeScrollHeight) {
     //time scroll   
-    if (x >= this.trackLabelWidth + this.timeScrollThumbPos && x <= this.trackLabelWidth + this.timeScrollThumbPos + this.timeScrollThumbWidth) {
-      this.timeScrollThumbDragOffset = x - this.trackLabelWidth - this.timeScrollThumbPos;
+    if (this.mousePosition.x >= this.trackLabelWidth + this.timeScrollThumbPos && this.mousePosition.x <= this.trackLabelWidth + this.timeScrollThumbPos + this.timeScrollThumbWidth) {
+      this.timeScrollThumbDragOffset = this.mousePosition.x - this.trackLabelWidth - this.timeScrollThumbPos;
       this.draggingTimeScrollThumb = true;
     }
   }
 }
 
 Timeline.prototype.onDocumentMouseMove = function(event) { 
-  var x = event.layerX;
-  var y = event.layerY;
-  this.mouseX = x;
-  this.mouseY = y;
+  this.updateMousePosition(event);
   
   if (this.draggingTime) {
   	this.updateCss();
-    this.time = this.xToTime(x);
+    this.time = this.xToTime(this.mousePosition.x);
     var animationEnd = this.findAnimationEnd();
     if (this.time < 0) this.time = 0;
     if (this.time > animationEnd) this.time = animationEnd;  
@@ -204,7 +216,7 @@ Timeline.prototype.onDocumentMouseMove = function(event) {
   if (this.draggingKeys) {
     for(var i=0; i<this.selectedKeys.length; i++) {
       var draggedKey = this.selectedKeys[i];
-      draggedKey.time = Math.max(0, this.xToTime(x));
+      draggedKey.time = Math.max(0, this.xToTime(this.mousePosition.x));
       this.sortTrackKeys(draggedKey.track);
       this.rebuildSelectedTracks();
     } 
@@ -212,17 +224,16 @@ Timeline.prototype.onDocumentMouseMove = function(event) {
     this.timeScrollThumbPos = this.timeScrollX * (this.timeScrollWidth - this.timeScrollThumbWidth);  
   }    
   if (this.draggingTimeScale) {
-    this.timeScale = Math.max(0.01, Math.min((this.trackLabelWidth - x) / this.trackLabelWidth, 1));    
+    this.timeScale = Math.max(0.01, Math.min((this.trackLabelWidth - this.mousePosition.x) / this.trackLabelWidth, 1));    
     this.save();
   }
 }
 
 Timeline.prototype.onCanvasMouseMove = function(event) { 
-  var x = event.layerX;
-  var y = event.layerY;
+  this.updateMousePosition(event);
    
   if (this.draggingTracksScrollThumb) {         
-    this.tracksScrollThumbPos = y - this.headerHeight - this.tracksScrollThumbDragOffset;
+    this.tracksScrollThumbPos = this.mousePosition.y - this.headerHeight - this.tracksScrollThumbDragOffset;
     if (this.tracksScrollThumbPos < 0) {
       this.tracksScrollThumbPos = 0;
     }
@@ -237,7 +248,7 @@ Timeline.prototype.onCanvasMouseMove = function(event) {
     }                                                                                                         
   }   
   if (this.draggingTimeScrollThumb) {
-    this.timeScrollThumbPos = x - this.trackLabelWidth - this.timeScrollThumbDragOffset;
+    this.timeScrollThumbPos = this.mousePosition.x - this.trackLabelWidth - this.timeScrollThumbDragOffset;
     if (this.timeScrollThumbPos < 0) {
       this.timeScrollThumbPos = 0;
     }  
@@ -271,8 +282,8 @@ Timeline.prototype.onMouseUp = function(event) {
     this.draggingTimeScrollThumb = false;   
   }
   if(this.boundingBox != null){
-  	for(var i = 0; i < Math.abs(this.boundingBox.x - event.layerX); i+=5)
-  		for(var j = 0; j < Math.abs(this.boundingBox.y - event.layerY); j+=5){
+  	for(var i = 0; i < Math.abs(this.boundingBox.x - this.mousePosition.x); i+=5)
+  		for(var j = 0; j < Math.abs(this.boundingBox.y - this.mousePosition.y); j+=5){
   			var keySearch = this.selectKeys(this.boundingBox.x+i,this.boundingBox.y+j);
   			if (keySearch != undefined)
   				console.log(keySearch); //temp for box select
@@ -283,10 +294,10 @@ Timeline.prototype.onMouseUp = function(event) {
 }
 
 Timeline.prototype.onMouseClick = function(event) {
-	if (event.layerX < 1*this.headerHeight - 4 * 0 && event.layerY < this.headerHeight) {
+	if (this.mousePosition.x < 1*this.headerHeight - 4 * 0 && this.mousePosition.y < this.headerHeight) {
 		this.play();
 	}                     
-	if (event.layerX > 1*this.headerHeight - 4 * 0 && event.layerX < 2*this.headerHeight - 4 * 1 && event.layerY < this.headerHeight) {
+	if (this.mousePosition.x > 1*this.headerHeight - 4 * 0 && this.mousePosition.x < 2*this.headerHeight - 4 * 1 && this.mousePosition.y < this.headerHeight) {
 		
 		this.pause();
 		
@@ -314,18 +325,18 @@ Timeline.prototype.onMouseClick = function(event) {
 			
 	}
 	
-	if (event.layerX > 2*this.headerHeight - 4 * 1 && event.layerX < 3*this.headerHeight - 4 * 2 && event.layerY < this.headerHeight) {
+	if (this.mousePosition.x > 2*this.headerHeight - 4 * 1 && this.mousePosition.x < 3*this.headerHeight - 4 * 2 && this.mousePosition.y < this.headerHeight) {
 		this.stop();
 	}
 	
-	if (event.layerX > 3*this.headerHeight - 4 * 2 && event.layerX < 4*this.headerHeight - 4 * 3 && event.layerY < this.headerHeight) {
+	if (this.mousePosition.x > 3*this.headerHeight - 4 * 2 && this.mousePosition.x < 4*this.headerHeight - 4 * 3 && this.mousePosition.y < this.headerHeight) {
 		this.export();
 	} 
 	   
 	//click on title
-	if (event.layerX < 4*this.headerHeight - 4 * 3 && event.layerY > this.headerHeight) {
+	if (this.mousePosition.x < 4*this.headerHeight - 4 * 3 && this.mousePosition.y > this.headerHeight) {
 		
-		var trackObject = this.getTrackAt(event.layerX, event.layerY);
+		var trackObject = this.getTrackAt(this.mousePosition.x, this.mousePosition.y);
 		
 		if (trackObject == null || trackObject.type != "object")
 			return;
@@ -341,8 +352,8 @@ Timeline.prototype.onMouseClick = function(event) {
 }  
 
 Timeline.prototype.onMouseDoubleClick = function(event) {
-  var x = event.layerX;
-  var y = event.layerY;
+  var x = this.mousePosition.x;
+  var y = this.mousePosition.y;
   
   if (x > this.trackLabelWidth && y < this.headerHeight) {
     //timeline
@@ -517,7 +528,8 @@ Timeline.prototype.updateGUI = function() {
        
   for(var i=0; i<displayTracks.length; i++) { 
     var yshift = this.headerHeight + this.trackLabelHeight * (i + 1);
-    var scrollY = this.tracksScrollY * (displayTracks.length * this.trackLabelHeight - this.canvas.height + this.headerHeight) + this.timeScrollHeight; 
+    var scrollY = this.tracksScrollY * (displayTracks.length * this.trackLabelHeight - this.canvas.height + this.headerHeight); 
+    
     yshift -= scrollY;
     if (yshift < this.headerHeight) continue;
     
@@ -591,7 +603,7 @@ Timeline.prototype.updateGUI = function() {
   
   //bounding box for selection
   if(this.boundingBox != null){
-  	this.drawRect(this.boundingBox.x, this.boundingBox.y, this.mouseX - this.boundingBox.x , this.mouseY - this.boundingBox.y, "rgba(0, 0, 256, 0.2)");
+  	this.drawRect(this.boundingBox.x, this.boundingBox.y, this.mousePosition.x - this.boundingBox.x , this.mousePosition.y - this.boundingBox.y, "rgba(0, 0, 256, 0.2)");
   }
 }     
 
@@ -732,7 +744,7 @@ Timeline.prototype.initTracks = function() {
         id: anim.targetName,
         name: anim.targetName,
         target: anim.target,  
-        visible: true,      
+        visible: false,      
         propertyTracks: []
       };                         
       if (!objectTrack.name) {
