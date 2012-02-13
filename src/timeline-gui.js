@@ -149,8 +149,8 @@ Timeline.prototype.initGUI = function() {
 
 //get the position of the mouse relative to the timeline
 Timeline.prototype.updateMousePosition = function(event) {
-	this.mousePosition.x = event.layerX;
-	this.mousePosition.y = event.layerY;
+	this.mousePosition.x = event.clientX;
+	this.mousePosition.y = event.clientY - this.splitter.offsetTop-2;
 }                                             
 
 Timeline.prototype.onMouseDown = function(event) {   
@@ -946,6 +946,11 @@ Timeline.prototype.rebuildSelectedTracks = function() {
 }
 
 Timeline.prototype.rebuildTrackAnimsFromKeys = function(track) {   
+  
+  //this is a label; end yo function
+  if (track.anims == undefined)
+  	return;
+  	
   var deletedAnims = [];
                      
   //remove all track's anims from the timeline
