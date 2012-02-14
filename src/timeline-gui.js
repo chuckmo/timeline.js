@@ -32,12 +32,16 @@ Timeline.prototype.initGUI = function() {
 	this.draggingTimeScrollThumb = false;
 	this.draggingKeys = false;
 	this.draggingTimeScale = false;
-	this.boundingBox = null;
+	
+	this.boundingBoxStartDrag = null;
+	this.rotateStartDrag = null;
+	
 	this.selectedKeys = [];  
 	this.timeScale = 1;    
 	this.editHistory = [];
 	
-	this.mousePosition = {x: 0, y:0}
+	this.mousePosition = {x: 0, y:0}; //this is the mouse position relative to the keys ui
+	this.canvasMousePosition = {x: 0, y:0}; //this is the mouse position relative to the keys ui
 	this.shiftPressed = false;
 	
 	//remove for save to be enabled...
@@ -154,10 +158,9 @@ Timeline.prototype.initGUI = function() {
 	},true);
 	
 	window.addEventListener('keydown',function(evt){
-		if (evt.keyCode == 16){ //delete key
+		if (evt.keyCode == 16){ //shift key down
 			self.shiftPressed = true;
 		}
-	
 	},true);
 	
 	
@@ -170,8 +173,11 @@ Timeline.prototype.initGUI = function() {
 
 //get the position of the mouse relative to the timeline
 Timeline.prototype.updateMousePosition = function(event) {
-	this.mousePosition.x = event.clientX;
-	this.mousePosition.y = event.clientY - this.splitter.offsetTop-2;
+	this.mousePosition.x = event.pageX;
+	this.mousePosition.y = event.pageY;
+	
+	this.canvasMousePosition.x = event.clientX;
+	this.canvasMousePosition.y = event.clientY - this.splitter.offsetTop-2;
 }                                             
 
 Timeline.prototype.onMouseDown = function(event) {   
@@ -180,41 +186,41 @@ Timeline.prototype.onMouseDown = function(event) {
   
   this.selectedKeys = [];    
   
-  var x = this.mousePosition.x;
-  var y = this.mousePosition.y;
+  var x = this.canvasMousePosition.x;
+  var y = this.canvasMousePosition.y;
   
-  if (this.mousePosition.x > this.trackLabelWidth && this.mousePosition.y < this.headerHeight) {
+  if (this.canvasMousePosition.x > this.trackLabelWidth && this.canvasMousePosition.y < this.headerHeight) {
     //timeline
     this.draggingTime = true; 
     this.onCanvasMouseMove(event);
   }             
-  else if (this.mousePosition.x > this.canvas.width - this.tracksScrollWidth && this.mousePosition.y > this.headerHeight) {  
+  else if (this.canvasMousePosition.x > this.canvas.width - this.tracksScrollWidth && this.canvasMousePosition.y > this.headerHeight) {  
     //tracks scroll
-    if (this.mousePosition.y >= this.headerHeight + this.tracksScrollThumbPos && this.mousePosition.y <= this.headerHeight + this.tracksScrollThumbPos + this.tracksScrollThumbHeight) {
-      this.tracksScrollThumbDragOffset = this.mousePosition.y - this.headerHeight - this.tracksScrollThumbPos;
+    if (this.canvasMousePosition.y >= this.headerHeight + this.tracksScrollThumbPos && this.canvasMousePosition.y <= this.headerHeight + this.tracksScrollThumbPos + this.tracksScrollThumbHeight) {
+      this.tracksScrollThumbDragOffset = this.canvasMousePosition.y - this.headerHeight - this.tracksScrollThumbPos;
       this.draggingTracksScrollThumb = true;
     }
   }
-  else if (this.mousePosition.x > this.trackLabelWidth && this.mousePosition.y > this.headerHeight && this.mousePosition.y < this.canvasHeight - this.timeScrollHeight) {
+  else if (this.canvasMousePosition.x > this.trackLabelWidth && this.canvasMousePosition.y > this.headerHeight && this.canvasMousePosition.y < this.canvasHeight - this.timeScrollHeight) {
     //keys
-    this.selectKeys(this.mousePosition.x, this.mousePosition.y);
+    this.selectKeys(this.canvasMousePosition.x, this.canvasMousePosition.y);
     if (this.selectedKeys.length > 0) {
       this.draggingKeys = true;
     }else{
-    	this.boundingBox = {"x":this.mousePosition.x,"y": this.mousePosition.y}
+    	this.boundingBoxStartDrag = {"x":this.canvasMousePosition.x,"y": this.canvasMousePosition.y}
     }       
     this.cancelKeyClick = false;
   }       
-  else if (this.mousePosition.x < this.trackLabelWidth && this.mousePosition.y > this.canvasHeight - this.timeScrollHeight) {         
+  else if (this.canvasMousePosition.x < this.trackLabelWidth && this.canvasMousePosition.y > this.canvasHeight - this.timeScrollHeight) {         
     //time scale
-    this.timeScale = Math.max(0.01, Math.min((this.trackLabelWidth - this.mousePosition.x) / this.trackLabelWidth, 1));
+    this.timeScale = Math.max(0.01, Math.min((this.trackLabelWidth - this.canvasMousePosition.x) / this.trackLabelWidth, 1));
     this.draggingTimeScale = true;   
     this.save();
   }   
-  else if (this.mousePosition.x > this.trackLabelWidth && this.mousePosition.y > this.canvasHeight - this.timeScrollHeight) {
+  else if (this.canvasMousePosition.x > this.trackLabelWidth && this.canvasMousePosition.y > this.canvasHeight - this.timeScrollHeight) {
     //time scroll   
-    if (this.mousePosition.x >= this.trackLabelWidth + this.timeScrollThumbPos && this.mousePosition.x <= this.trackLabelWidth + this.timeScrollThumbPos + this.timeScrollThumbWidth) {
-      this.timeScrollThumbDragOffset = this.mousePosition.x - this.trackLabelWidth - this.timeScrollThumbPos;
+    if (this.canvasMousePosition.x >= this.trackLabelWidth + this.timeScrollThumbPos && this.canvasMousePosition.x <= this.trackLabelWidth + this.timeScrollThumbPos + this.timeScrollThumbWidth) {
+      this.timeScrollThumbDragOffset = this.canvasMousePosition.x - this.trackLabelWidth - this.timeScrollThumbPos;
       this.draggingTimeScrollThumb = true;
     }
   }
@@ -225,7 +231,7 @@ Timeline.prototype.onDocumentMouseMove = function(event) {
   
   if (this.draggingTime) {
   	this.updateCss();
-    this.time = this.xToTime(this.mousePosition.x);
+    this.time = this.xToTime(this.canvasMousePosition.x);
     var animationEnd = this.findAnimationEnd();
     if (this.time < 0) this.time = 0;
     if (this.time > animationEnd) this.time = animationEnd;  
@@ -234,7 +240,7 @@ Timeline.prototype.onDocumentMouseMove = function(event) {
   if (this.draggingKeys) {
     for(var i=0; i<this.selectedKeys.length; i++) {
       var draggedKey = this.selectedKeys[i];
-      draggedKey.time = Math.max(0, this.xToTime(this.mousePosition.x));
+      draggedKey.time = Math.max(0, this.xToTime(this.canvasMousePosition.x));
       this.sortTrackKeys(draggedKey.track);
       this.rebuildSelectedTracks();
     } 
@@ -242,8 +248,29 @@ Timeline.prototype.onDocumentMouseMove = function(event) {
     this.timeScrollThumbPos = this.timeScrollX * (this.timeScrollWidth - this.timeScrollThumbWidth);  
   }    
   if (this.draggingTimeScale) {
-    this.timeScale = Math.max(0.01, Math.min((this.trackLabelWidth - this.mousePosition.x) / this.trackLabelWidth, 1));    
+    this.timeScale = Math.max(0.01, Math.min((this.trackLabelWidth - this.canvasMousePosition.x) / this.trackLabelWidth, 1));    
     this.save();
+  }
+  
+  if (this.rotateStartDrag != null){
+  	
+  	var mouseStartXFromCentre = this.rotateStartDrag.mouse.x - this.rotateStartDrag.elementPos.left;
+  	var mouseStartYFromCentre = this.rotateStartDrag.mouse.y - this.rotateStartDrag.elementPos.top;
+	mouseStartAngle = Math.atan2( mouseStartYFromCentre, mouseStartXFromCentre );
+	
+	var mouseXFromCentre = this.mousePosition.x - this.rotateStartDrag.elementPos.left;
+	var mouseYFromCentre = this.mousePosition.y - this.rotateStartDrag.elementPos.top;
+	var mouseAngle = Math.atan2( mouseYFromCentre, mouseXFromCentre );
+	
+	var rotateAngle = mouseAngle - mouseStartAngle;
+	
+	  $(this.rotateStartDrag.element).css('transform','rotate(' + rotateAngle + 'rad)');
+	  $(this.rotateStartDrag.element).css('-moz-transform','rotate(' + rotateAngle + 'rad)');
+	  $(this.rotateStartDrag.element).css('-webkit-transform','rotate(' + rotateAngle + 'rad)');
+	  $(this.rotateStartDrag.element).css('-o-transform','rotate(' + rotateAngle + 'rad)');
+	  $(this.rotateStartDrag.element).data('currentRotation', rotateAngle );
+		
+	console.log(rotateAngle);
   }
 }
 
@@ -251,7 +278,7 @@ Timeline.prototype.onCanvasMouseMove = function(event) {
   this.updateMousePosition(event);
    
   if (this.draggingTracksScrollThumb) {         
-    this.tracksScrollThumbPos = this.mousePosition.y - this.headerHeight - this.tracksScrollThumbDragOffset;
+    this.tracksScrollThumbPos = this.canvasMousePosition.y - this.headerHeight - this.tracksScrollThumbDragOffset;
     if (this.tracksScrollThumbPos < 0) {
       this.tracksScrollThumbPos = 0;
     }
@@ -266,7 +293,7 @@ Timeline.prototype.onCanvasMouseMove = function(event) {
     }                                                                                                         
   }   
   if (this.draggingTimeScrollThumb) {
-    this.timeScrollThumbPos = this.mousePosition.x - this.trackLabelWidth - this.timeScrollThumbDragOffset;
+    this.timeScrollThumbPos = this.canvasMousePosition.x - this.trackLabelWidth - this.timeScrollThumbDragOffset;
     if (this.timeScrollThumbPos < 0) {
       this.timeScrollThumbPos = 0;
     }  
@@ -280,6 +307,7 @@ Timeline.prototype.onCanvasMouseMove = function(event) {
       this.timeScrollX = 0;
     }
   } 
+  
 
 }              
 
@@ -299,23 +327,25 @@ Timeline.prototype.onMouseUp = function(event) {
   if (this.draggingTimeScrollThumb) {
     this.draggingTimeScrollThumb = false;   
   }
-  if(this.boundingBox != null){
-  	for(var i = 0; i < Math.abs(this.boundingBox.x - this.mousePosition.x); i+=5)
-  		for(var j = 0; j < Math.abs(this.boundingBox.y - this.mousePosition.y); j+=5){
-  			var keySearch = this.selectKeys(this.boundingBox.x+i,this.boundingBox.y+j);
+  if(this.boundingBoxStartDrag != null){
+  	for(var i = 0; i < Math.abs(this.boundingBoxStartDrag.x - this.canvasMousePosition.x); i+=5)
+  		for(var j = 0; j < Math.abs(this.boundingBoxStartDrag.y - this.canvasMousePosition.y); j+=5){
+  			var keySearch = this.selectKeys(this.boundingBoxStartDrag.x+i,this.boundingBoxStartDrag.y+j);
   			if (keySearch != undefined)
   				console.log(keySearch); //temp for box select
   		}
   			  	
-  	this.boundingBox = null;
+  	this.boundingBoxStartDrag = null;
   }
+  
+  this.rotateStartDrag = null;
 }
 
 Timeline.prototype.onMouseClick = function(event) {
-	if (this.mousePosition.x < 1*this.headerHeight - 4 * 0 && this.mousePosition.y < this.headerHeight) {
+	if (this.canvasMousePosition.x < 1*this.headerHeight - 4 * 0 && this.canvasMousePosition.y < this.headerHeight) {
 		this.play();
 	}                     
-	if (this.mousePosition.x > 1*this.headerHeight - 4 * 0 && this.mousePosition.x < 2*this.headerHeight - 4 * 1 && this.mousePosition.y < this.headerHeight) {
+	if (this.canvasMousePosition.x > 1*this.headerHeight - 4 * 0 && this.canvasMousePosition.x < 2*this.headerHeight - 4 * 1 && this.canvasMousePosition.y < this.headerHeight) {
 		
 		this.pause();
 		
@@ -324,44 +354,52 @@ Timeline.prototype.onMouseClick = function(event) {
 		for (var i = 0; i < this.targets.length; i++){
 			$(this.targets[i].element).draggable({
 				drag: function(event, ui){
-					
-					
-					if (timelineReference.shiftPressed)
+					if (timelineReference.shiftPressed){ //if shift is pressed dont 
+						
+						timelineReference.rotateStartDrag = {
+							mouse: {x:timelineReference.mousePosition.x,y:timelineReference.mousePosition.y},
+							elementPos: $(this).offset(),
+							element: this
+						}
+						
+						
+						
 						return false;
-					
+					}
 				},
 			   stop: function(event, ui) {
-			   		for(var i = 0; i < timelineReference.tracks.length; i++){
-			   			if (timelineReference.tracks[i].type == "property" && timelineReference.tracks[i].target.element == this){
-			   			
-			   				if (timelineReference.tracks[i].name == "x"){
-			   					timelineReference.addKeyAt(timelineReference.tracks[i], timelineReference.time, parseInt(this.style.left));
-			   					
-			   				}
-			   				if (timelineReference.tracks[i].name == "y"){
-			   					timelineReference.addKeyAt(timelineReference.tracks[i], timelineReference.time, parseInt(this.style.top));	
-			   					
-			   				}
-			   			}
-			   		}
+			  		if (timelineReference.rotateStartDrag == null)
+				   		for(var i = 0; i < timelineReference.tracks.length; i++){
+				   			if (timelineReference.tracks[i].type == "property" && timelineReference.tracks[i].target.element == this){
+				   			
+				   				if (timelineReference.tracks[i].name == "x"){
+				   					timelineReference.addKeyAt(timelineReference.tracks[i], timelineReference.time, parseInt(this.style.left));
+				   					
+				   				}
+				   				if (timelineReference.tracks[i].name == "y"){
+				   					timelineReference.addKeyAt(timelineReference.tracks[i], timelineReference.time, parseInt(this.style.top));	
+				   					
+				   				}
+				   			}
+				   		}
 			   }
 			});
 		}
 			
 	}
 	
-	if (this.mousePosition.x > 2*this.headerHeight - 4 * 1 && this.mousePosition.x < 3*this.headerHeight - 4 * 2 && this.mousePosition.y < this.headerHeight) {
+	if (this.canvasMousePosition.x > 2*this.headerHeight - 4 * 1 && this.canvasMousePosition.x < 3*this.headerHeight - 4 * 2 && this.canvasMousePosition.y < this.headerHeight) {
 		this.stop();
 	}
 	
-	if (this.mousePosition.x > 3*this.headerHeight - 4 * 2 && this.mousePosition.x < 4*this.headerHeight - 4 * 3 && this.mousePosition.y < this.headerHeight) {
+	if (this.canvasMousePosition.x > 3*this.headerHeight - 4 * 2 && this.canvasMousePosition.x < 4*this.headerHeight - 4 * 3 && this.canvasMousePosition.y < this.headerHeight) {
 		this.export();
 	} 
 	   
 	//click on title
-	if (this.mousePosition.x < 4*this.headerHeight - 4 * 3 && this.mousePosition.y > this.headerHeight) {
+	if (this.canvasMousePosition.x < 4*this.headerHeight - 4 * 3 && this.canvasMousePosition.y > this.headerHeight) {
 		
-		var trackObject = this.getTrackAt(this.mousePosition.x, this.mousePosition.y);
+		var trackObject = this.getTrackAt(this.canvasMousePosition.x, this.canvasMousePosition.y);
 		
 		if (trackObject == null || trackObject.type != "object")
 			return;
@@ -377,8 +415,8 @@ Timeline.prototype.onMouseClick = function(event) {
 }  
 
 Timeline.prototype.onMouseDoubleClick = function(event) {
-  var x = this.mousePosition.x;
-  var y = this.mousePosition.y;
+  var x = this.canvasMousePosition.x;
+  var y = this.canvasMousePosition.y;
   
   if (x > this.trackLabelWidth && y < this.headerHeight) {
     //timeline
@@ -627,8 +665,8 @@ Timeline.prototype.updateGUI = function() {
   this.drawLine(this.trackLabelWidth, h - this.timeScrollHeight - 1, this.trackLabelWidth, h, "#000000");
   
   //bounding box for selection
-  if(this.boundingBox != null){
-  	this.drawRect(this.boundingBox.x, this.boundingBox.y, this.mousePosition.x - this.boundingBox.x , this.mousePosition.y - this.boundingBox.y, "rgba(0, 0, 256, 0.2)");
+  if(this.boundingBoxStartDrag != null){
+  	this.drawRect(this.boundingBoxStartDrag.x, this.boundingBoxStartDrag.y, this.canvasMousePosition.x - this.boundingBoxStartDrag.x , this.canvasMousePosition.y - this.boundingBoxStartDrag.y, "rgba(0, 0, 256, 0.2)");
   }
 }     
 
